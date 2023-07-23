@@ -1,42 +1,27 @@
 package com.github.enesusta;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.enesusta.model.Employee;
-import org.jeasy.random.EasyRandom;
-import org.jeasy.random.EasyRandomParameters;
-
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import com.github.enesusta.generator.DataGenerator;
+import io.javalin.Javalin;
 
 public class Kirpi {
-    public static void main(String[] args) throws InterruptedException, IOException {
+    public static void main(String[] args) {
+        DataGenerator dataGenerator = new DataGenerator();
+        dataGenerator.generate();
 
-        EasyRandomParameters parameters = new EasyRandomParameters();
-        EasyRandom generator = new EasyRandom(parameters);
-        ObjectMapper objectMapper = new ObjectMapper();
+        LookupService lookupService = new LookupService(dataGenerator);
 
-        try (OutputStream outputStream = new FileOutputStream("data.txt")) {
-            for (int i = 0; i < 15; i++) {
-                Employee employee = generator.nextObject(Employee.class);
-                String s = objectMapper.writeValueAsString(employee);
-                outputStream.write((s + "\n").getBytes());
-            }
-        }
+        var app = Javalin.create(/*config*/)
+                .get("/{id}", ctx -> {
+                    int id = Integer.parseInt(ctx.pathParam("id"));
+                    String[] arr = new String[5];
 
-//        try (InputStream inputStream = new BufferedInputStream(Files.newInputStream(Paths.get("data.txt")))) {
-//            byte[] bytes = inputStream.readNBytes(61);
-//            System.out.println("bytes = " + new String(bytes));
-//
-//            inputStream.skip(1);
-//
-//            byte[] bytes1 = inputStream.readNBytes(91);
-//            System.out.println("bytes1 = " + new String(bytes1));
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-
-//        Thread.currentThread().join();
+                    for (int i = 0; i < 5; i++) {
+                        arr[i] = lookupService.read(i);
+                    }
+//                    String read = lookupService.read(id);
+                    ctx.json(arr);
+                })
+                .start(8080);
     }
 }
